@@ -11,7 +11,7 @@ library(jsonlite)
 # Data
 bevingen <- read_csv("../../data/bevingen.csv") 
 veld <- read_json("../../data/groningenveld.json")
-brtAchtergrondkaart <- "http://geodata.nationaalgeoregister.nl/tiles/service/wmts/brtachtergrondkaart/EPSG:3857/{z}/{x}/{y}.png"
+brtAchtergrondkaart <- "http://geodata.nationaalgeoregister.nl/tiles/service/wmts/brtachtergrondkaartgrijs/EPSG:3857/{z}/{x}/{y}.png"
 jaargegevens <- read_csv("../../data/gegevens geaggregeerd per jaar.csv") %>%
                   mutate(hovertekst_aantal  = paste("Jaar:", jaar, "<br>", "Aantal:", aantal),
                          hovertekst_winning = paste("Jaar:", jaar, "<br>", "Gaswinning:", gaswinning, "miljard Nm<sup>3</sup>"))
@@ -97,12 +97,6 @@ server <- function(input, output) {
       addMapPane("bevingen",  zIndex = 420) %>%
       addTopoJSON(topojson = veld, weight = 1, color = "#555555", opacity = 1, fillOpacity = 0.3,
                   options = pathOptions(pane = "groningen veld"), group = "groningen veld") %>%
-      addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
-                 weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
-                 popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
-                                "Locatie:", locatie, "<br>",
-                                "Magnitude:" , magnitude),
-                 options = pathOptions(pane = "bevingen")) %>%
       setView(6.8, 53.3, zoom = 10) %>%
       hideGroup("groningen veld")
   })
@@ -110,7 +104,8 @@ server <- function(input, output) {
   observe({
     leafletProxy(mapId = "kaart") %>%
       clearShapes() %>%
-      addCircles(data = opMagnitudeGefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),                  weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+      addCircles(data = opMagnitudeGefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),
+                 weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
                  popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
                                 "Locatie:", locatie, "<br>",
                                 "Magnitude:" , magnitude),

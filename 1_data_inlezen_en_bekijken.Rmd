@@ -2,6 +2,8 @@
 title: "Data inlezen en bekijken"
 output:
   html_notebook: default
+  html_document:
+    df_print: paged
 ---
 
 Laad de libraries die we in dit deel van de workshop nodig hebben.
