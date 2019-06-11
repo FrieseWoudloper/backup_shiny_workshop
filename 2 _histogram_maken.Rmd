@@ -1,0 +1,167 @@
+---
+title: "Histogram maken"
+output: html_notebook
+---
+
+Laad de libraries die we in dit deel van de workshop nodig hebben.
+
+```{r message = FALSE}
+library(tidyverse)
+library(shiny)
+library(shinydashboard)
+library(plotly)
+```
+
+Lees voor de zekerheid nogmaals de gegevens in.
+
+```{r}
+bevingen <- read_csv("./data/bevingen.csv")
+```
+
+Maak een histogram van de magnitude van de bevingen. Gebruik hiervoor [Plotly](https://en.wikipedia.org/wiki/Plotly), zodat je interactieve elementen kunt toevoegen.
+
+```{r}
+plot_ly(data = bevingen, x = ~factor(magnitude)) %>%
+  add_histogram()
+```
+
+Pas de opmaak van de x- en y-as aan. Voeg titels toe en plaats minder labels langs de x-as.
+
+```{r}
+plot_ly(data = bevingen, x = ~factor(magnitude)) %>%
+  add_histogram() %>%
+  layout(xaxis = list(title = "Magnitude (Richter)", dtick = 10),  
+         yaxis = list(title = "Frequentie"))  
+```
+
+Pas de hovermodus aan, zodat je makkelijk de x- en y-waarde kunt aflezen. Verberg de menubalk van het histogram.
+
+```{r}
+plot_ly(data = bevingen, x = ~factor(magnitude)) %>%
+  add_histogram() %>%
+  layout(xaxis = list(title = "Magnitude (Richter)", dtick = 10),
+         yaxis = list(title = "Frequentie"), 
+         hovermode = 'compare') %>%     
+  config(displayModeBar = F)
+```
+
+Maak een Shiny app. Begin met de gebruikersinterface.
+
+```{r}
+header <- dashboardHeader(title = "Histogram")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(plotlyOutput(outputId = "histogram"))
+
+ui <- dashboardPage(header, sidebar, body)
+```
+
+De identificatie van de placeholder voor de Plotly output is `histogram`.
+
+Render het histogram aan de serverkant. Zorg er voor dat het resultaat op de juiste plaats in de gebruikersinterface terecht komt met `output$histogram`.
+
+```{r}
+server <- function(input, output) {
+  output$histogram <- renderPlotly({
+    plot_ly(data = bevingen, x = ~factor(magnitude)) %>%
+      add_histogram() %>%
+      layout(xaxis = list(title = "Magnitude (Richter)", dtick = 10) , 
+             yaxis = list(title = "Frequentie"), 
+             hovermode = 'compare') %>%
+      config(displayModeBar = F)
+  }) 
+}
+```
+
+Run de Shiny app.
+
+```{r}
+shinyApp(ui, server)
+```
+
+Het histogram ziet er uitgerekt en lelijk uit. Voeg een box toe aan de gebruikersinterface, plaats het histogram daarbinnen en pas de breedte aan.
+
+Shiny werkt met het [Bootstrap](https://nl.wikipedia.org/wiki/Bootstrap_(framework)) framework om er voor te zorgen dat de web apps reponsive zijn. Dat wil zeggen: dat ze er goed uitzien op alle devices en mooi meeschalen als het scherm groter of kleiner wordt.    
+
+Bootstrap gebruikt een grid waarbij het scherm is opgedeeld in 12 kolommen. De relatieve breedte van een box druk je daarom uit op een schaal van 1 tot 12. `width = 6` betekent dat de breedte van de box met het histogram de helft van de breedte van het scherm heeft.
+
+Voer onderstaande code meerdere malen uit, iedere keer met een andere waarde voor `width` om een idee te krijgen van hoe Bootstrap werkt.
+
+Maak het scherm van de web app kleiner en groter en merk op dat de app de zich automatisch aanpast aan de schermgrootte.
+
+```{r}
+header <- dashboardHeader(title = "Histogram")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(
+          box(width = 6, plotlyOutput(outputId = "histogram"))
+        )
+
+ui <- dashboardPage(header, sidebar, body)
+
+server <- function(input, output) {
+  output$histogram <- renderPlotly({
+    plot_ly(data = bevingen, x = ~factor(magnitude)) %>%
+      add_histogram() %>%
+      layout(xaxis = list(title = "Magnitude (Richter)", dtick = 10) , 
+             yaxis = list(title = "Frequentie"), 
+             hovermode = 'compare') %>%
+      config(displayModeBar = F)
+  }) 
+}
+
+shinyApp(ui, server)
+```
+
+Voeg aan de gebruikersinterface een slider toe voor het selecteren van een specifieke periode.    
+De minimumwaarde die geselecteerd kan worden is 1985 en de maximum 2019.
+
+```{r}
+header <- dashboardHeader(title = "Histogram")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(
+          box(width = 6, plotlyOutput(outputId = "histogram")),
+          box(width = 4, sliderInput(inputId = "jaar", label = "Jaar", 
+                                     min = 1986, max = 2019, value = c(1986, 2019), sep = ""))
+        )
+
+ui <- dashboardPage(header, sidebar, body)
+```
+
+`input$jaar[1]` bevat de laagste geselecteerde waarde en `input$jaar[2]` de hoogste.    
+Pas de code aan de serverkant aan, zodat de gegevens gefilterd worden op de geselecteerde periode. Dit doe je door een _reactive source_ toe te voegen.
+
+```{r}
+server <- function(input, output) {
+  # Filter data op basis van slider input
+  gefilterdeBevingen <- reactive({
+                          bevingen %>% 
+                            filter(jaar >= input$jaar[1] & jaar <= input$jaar[2])              
+                        })
+  
+  # Render histogram
+  output$histogram <- renderPlotly({
+    # Databron is nu de reactive source!
+    plot_ly(data = gefilterdeBevingen(), x = ~factor(magnitude)) %>%     
+      add_histogram() %>%
+      layout(xaxis = list(title = "Magnitude (Richter)", dtick = 10), 
+             yaxis = list(title = "Frequentie"), 
+             hovermode = 'compare') %>%
+      config(displayModeBar = F)
+  }) 
+}
+```
+
+Start de Shiny app.
+
+```{r}
+shinyApp(ui, server)
+```
+
+Ga naar de map *shiny_apps\2_histogram_maken* en open het bestand *app.R*. Het bestand bevat alle code voor het maken van een interactief histogram in Shiny.
+
+Ga verder met de oefeningen in het bestand *3_kaart_maken.Rmd*.

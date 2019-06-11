@@ -1,0 +1,159 @@
+---
+title: "Tijdreeks visualiseren"
+output: html_notebook
+---
+
+Laad de libraries die we in dit deel van de workshop nodig hebben.
+
+```{r message = FALSE}
+library(tidyverse)
+library(shiny)
+library(shinydashboard)
+library(plotly)
+```
+
+Lees het CSV-bestand met het aantal bevingen en de gaswinning per jaar in.
+
+```{r}
+jaargegevens <- read_csv("./data/gegevens geaggregeerd per jaar.csv") 
+```
+
+Bekijk de eerste zes rijen in de dataset.
+
+```{r}
+head(jaargegevens)
+```
+
+Maak een grafiek van het aantal bevingen per jaar.
+
+```{r}
+plot_ly(data = jaargegevens, x = ~jaar, y = ~aantal, type = 'scatter', mode = 'markers+lines') %>%
+  layout(xaxis = list(title = "Jaar"),
+         yaxis = list(title = "Aantal bevingen"))
+```
+
+Pas de hovertekst aan en verberg de menubalk van de grafiek.
+
+```{r}
+jaargegevens <- jaargegevens %>%
+                  mutate(hovertekst = paste("Jaar:", jaar, "<br>", "Aantal:", aantal))
+
+plot_ly(data = jaargegevens, x = ~jaar, y = ~aantal, type = 'scatter', mode = 'markers+lines', 
+        hoverinfo = "text", text = ~hovertekst) %>%
+  layout(xaxis = list(title = "Jaar"),
+         yaxis = list(title = "Aantal bevingen")) %>%
+  config(displayModeBar = F)
+```
+
+Maak ook een grafiek van de gaswinning per jaar.
+
+```{r}
+jaargegevens <- jaargegevens %>%
+                mutate(hovertekst2 = paste("Jaar:", jaar, "<br>", "Gaswinning:", gaswinning, "miljard Nm<sup>3</sup>"))
+
+plot_ly(data = jaargegevens, x = ~jaar, y = ~gaswinning, type = 'scatter', mode = 'markers+lines', 
+        color = I('orange'), hoverinfo = "text", text = ~hovertekst2) %>%
+  layout(xaxis = list(title = "Jaar"),
+         yaxis = list(title = "Gaswinning (miljard Nm<sup>3</sup>)")) %>%
+  config(displayModeBar = F)
+```
+
+Presenteer beide grafieken in een Shiny app.
+
+```{r}
+# Data
+jaargegevens <- read_csv("./data/gegevens geaggregeerd per jaar.csv") %>%
+                  mutate(hovertekst_aantal  = paste("Jaar:", jaar, "<br>", "Aantal:", aantal),
+                         hovertekst_winning = paste("Jaar:", jaar, "<br>", "Gaswinning:", gaswinning, "miljard Nm<sup>3</sup>"))  
+
+# Gebruikersinterface
+header <- dashboardHeader(title = "Bevingen in de tijd")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(
+          box(width = 6, plotlyOutput(outputId = "grafiekAantal")),
+          box(width = 6, plotlyOutput(outputId = "grafiekGaswinning"))
+        )
+
+ui <- dashboardPage(header, sidebar, body)
+
+#Server
+server <- function(input, output) {
+  output$grafiekAantal <- renderPlotly({
+    plot_ly(data = jaargegevens, x = ~jaar, y = ~aantal, type = 'scatter', mode = 'markers+lines',  
+            hoverinfo = "text", text = ~hovertekst_aantal) %>%
+      layout(xaxis = list(title = "Jaar"),
+             yaxis = list(title = "Aantal bevingen")) %>%
+      config(displayModeBar = F)
+  }) 
+  
+  output$grafiekGaswinning <- renderPlotly({
+    plot_ly(data = jaargegevens, x = ~jaar, y = ~gaswinning, type = 'scatter', mode = 'markers+lines', 
+            color = I('orange'), hoverinfo = "text", text = ~hovertekst_winning) %>%
+      layout(xaxis = list(title = "Jaar"),
+             yaxis = list(title = "Gaswinning (miljard Nm<sup>3</sup>)")) %>%
+      config(displayModeBar = F)
+  }) 
+}
+
+shinyApp(ui, server)
+```
+
+Pas de Shiny app aan, zodat maar één grafiek tegelijkertijd wordt getoond en je van de ene naar de andere grafiek kunt switchen.    
+Voeg eerst radiobuttons toe aan de gebruikersinterface.
+
+```{r}
+header <- dashboardHeader(title = "Bevingen in de tijd")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(
+  box(
+    width = 6, 
+    plotlyOutput(outputId = "grafiek"), 
+    radioButtons(inputId = "y", label = "y-variabele:", choices = c("Aantal bevingen", "Gaswinning"), inline = TRUE)
+  )
+)
+
+ui <- dashboardPage(header, sidebar, body)
+```
+
+Verander de code aan de serverkant, zodat de gerenderde grafiek afhankelijk is van de geselecteerde radiobutton.
+
+```{r}
+server <- function(input, output) {
+  y <- reactive(
+         case_when(input$y == "Aantal bevingen" ~ jaargegevens$aantal,
+                   input$y == "Gaswinning"      ~ jaargegevens$gaswinning)
+       )
+  
+  hovertekst <- reactive(
+                  case_when(input$y == "Aantal bevingen" ~ jaargegevens$hovertekst_aantal,
+                            input$y == "Gaswinning"      ~ jaargegevens$hovertekst_winning)
+                )
+  
+  titel <- reactive(
+             case_when(input$y == "Aantal bevingen" ~ "Aantal bevingen",
+                       input$y == "Gaswinning"      ~ "Gaswinning (miljard Nm<sup>3</sup>)")
+           )
+  
+  output$grafiek <- renderPlotly({
+    plot_ly(data = jaargegevens, x = ~jaar, y = y(), type = 'scatter', mode = 'markers+lines',
+            hoverinfo = "text", text = hovertekst()) %>%
+      layout(xaxis = list(title = "Jaar"),
+             yaxis = list(title = titel())) %>%
+      config(displayModeBar = F)
+  }) 
+}
+```
+
+Start de Shiny app.
+
+```{r}
+shinyApp(ui, server)
+```
+
+Ga naar de map *shiny_apps\3_tijdreeks_visualiseren* en open het bestand *app.R*. Het bestand bevat alle code voor het visuliseren van de tijdreeksen van bevingen en gaswinning in Shiny.
+
+Ga verder met de oefeningen in het bestand *5_dashboard_bouwen.Rmd*.

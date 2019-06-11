@@ -1,0 +1,139 @@
+---
+title: "Data inlezen en bekijken"
+output:
+  html_notebook: default
+---
+
+Laad de libraries die we in dit deel van de workshop nodig hebben.
+
+```{r message = FALSE}
+library(tidyverse)
+library(shiny)
+library(shinydashboard)
+library(DT)
+```
+
+Lees het CSV-bestand met gegevens over de bevingen in.
+
+```{r}
+bevingen <- read_csv("./data/bevingen.csv")
+```
+
+Print de eerste zes rijen in de dataset.
+
+```{r}
+head(bevingen)
+```
+
+Bepaal wanneer de eerste en laatste beving plaatsvonden.
+
+```{r}
+bevingen %>%
+  summarise(eerste = min(datum), laatste = max(datum))
+```
+
+Bepaal de magnitude van de lichtste en de zwaarste beving.
+
+```{r}
+bevingen %>%
+  summarise(lichtste = min(magnitude), zwaarste = max(magnitude))
+```
+
+Print de alleen de bevingen uit 1992.  
+
+```{r}
+bevingen %>%
+  filter(jaar == 1992) 
+```
+
+Je gaat nu je eerste Shiny app maken!    
+De gebruikersinterface bestaat uit een *header*, *sidebar* en *body*.    
+Geef de header een titel. Laat de sidebar leeg. Voeg aan de body een placeholder toe voor de tabel die we zo aan de serverkant laten renderen.
+
+```{r}
+header <- dashboardHeader(title = "Mijn eerste Shiny app!")
+
+sidebar <- dashboardSidebar()
+
+body <- dashboardBody(DTOutput(outputId = 'tabel'))
+
+ui <- dashboardPage(header, sidebar, body)
+```
+
+Merk op dat de placeholder een unieke identificatie heeft, namelijk `tabel`.   
+
+Render een interactieve tabel op basis van de dataset met bevingen. Maak duidelijk dat de tabel in de gebruikersinterface op de plek van de placeholder ingevoegd moet worden. Dit doe je door de gerenderde tabel toe te kennen aan een variabele waarvan de naam begint met `output$` gevolgd door de unieke identificatie `tabel`.
+
+```{r}
+server <- function(input, output) {
+  output$tabel <- renderDT(bevingen)
+}
+```
+
+Voeg nu de gebruikersinterface en server samen tot één interactieve web app.
+
+```{r}
+shinyApp(ui, server)
+```
+
+Bij het afsluiten van de app krijg je een foutmelding, daar komen we zo op terug. Op dit moment kun je de foutmelding gewoon negeren.    
+
+De app ziet er al goed uit, alleen jammer dat de gebruikersinterface Engelstalig is. Pas het aan naar Nederlands.
+
+De sidebar heeft op dit moment geen functie. Verberg dit onderdeel van de gebruikersinterface.
+
+```{r}
+header <- dashboardHeader(title = "Mijn eerste Shiny app!")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(DTOutput(outputId = 'tabel'))
+
+ui <- dashboardPage(header, sidebar, body)
+
+server <- function(input, output) {
+  output$tabel <- renderDT(bevingen, 
+                           options = list(language = list(url = "http://cdn.datatables.net/plug-ins/1.10.19/i18n/Dutch.json")))
+}
+
+shinyApp(ui, server)
+```
+
+Voeg tenslotte nog een knop en serverlogica toe voor het downloaden van de gegevens.
+
+```{r}
+header <- dashboardHeader(title = "Mijn eerste Shiny app!")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(
+           DTOutput(outputId = 'tabel'), 
+           downloadButton(outputId = 'downloadData', label = "Download gegevens")
+        )
+
+ui <- dashboardPage(header, sidebar, body)
+
+server <- function(input, output) {
+  dutch <- "http://cdn.datatables.net/plug-ins/1.10.19/i18n/Dutch.json"
+  output$tabel <- renderDT(
+                    bevingen, 
+                    options = list(language = list(url = dutch))
+                  )
+  
+  output$downloadData <- downloadHandler(
+                           filename = "bevingen.csv", 
+                           content = function(file){write_csv(bevingen, file)}
+                         ) 
+}
+
+shinyApp(ui, server)
+```
+
+Voor de workshop is het handig om de code stapsgewijs uit te voeren in een R Notebook. Dit is echter niet een werkwijze die in de praktijk wordt aanbevolen.        
+
+De conventie is om Shiny code op te slaan in een bestand met de naam *app.R*. Je kunt er ook voor kiezen om de code voor de gebruikersinterface op te slaan in *ui.R* en voor de server in *server.R*.    
+
+Ga naar de map *shiny_apps\1_data_inlezen_en_bekijken* en open het bestand *app.R*. Het bestand bevat alle code die nodig is voor je eerste Shiny web app!       
+Run de Shiny app. Merk op dat je nu géén foutmelding krijgt bij het afsluiten van de app.
+
+Ga verder met de oefeningen in het bestand *2_histogram_maken.Rmd*.

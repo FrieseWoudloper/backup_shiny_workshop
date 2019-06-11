@@ -1,0 +1,373 @@
+---
+title: "Kaart maken"
+output: html_notebook
+---
+
+Laad de libraries die we in dit deel van de workshop nodig hebben.
+
+```{r message = FALSE}
+library(tidyverse)
+library(leaflet)
+library(shiny)
+library(shinydashboard)
+library(RColorBrewer)
+library(jsonlite)
+```
+
+Lees voor de zekerheid nogmaals de gegevens in.
+
+```{r}
+bevingen <- read_csv("./data/bevingen.csv")
+```
+
+Plot de bevingen op een kaart.
+
+```{r}
+leaflet() %>%
+  addTiles() %>%
+  addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = "black")
+```
+
+Maak de grootte van de cirkel afhankelijk van de magnitude van de beving.
+
+```{r}
+leaflet() %>%
+  addTiles() %>%
+  addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = "black", 
+             weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7)
+```
+
+Pas de kleur van de cirkels aan afhankelijk van de magnitude. De lichtste bevingen geel en de zwaarste rood.
+
+Definieer eerst een kleurenpalet, waarbij de kleuren lopen van geel (corresponderend met magnitude -1) naar rood (magnitude 4).
+
+```{r}
+ pal <- colorNumeric(palette = "YlOrRd", domain = c(-1:4))
+```
+
+Gebruik het zojuist gedefinieerde palet om de bevingen op basis van hun magnitude een kleur te geven.
+
+```{r}
+ leaflet() %>%
+  addTiles() %>%
+  addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
+             weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7)
+```
+
+Voeg een popup toe.
+
+```{r}
+leaflet() %>%
+  addTiles() %>%
+  addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),  
+             weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+             popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                            "Locatie:", locatie, "<br>",
+                            "Magnitude:" , magnitude)) 
+```
+
+Vervang de OpenStreetMap ondergrond door de BRT Achtergrondkaart.
+
+```{r}
+brtAchtergrondkaart <- "http://geodata.nationaalgeoregister.nl/tiles/service/wmts/brtachtergrondkaart/EPSG:3857/{z}/{x}/{y}.png"
+
+leaflet() %>%
+  addTiles(urlTemplate = brtAchtergrondkaart,
+           attribution = "Kaartgegevens &copy; Kadaster",
+           options = tileOptions(minZoom = 6, maxZoom = 18)) %>%
+  addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),  
+             weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+             popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                            "Locatie:", locatie, "<br>",
+                            "Magnitude:" , magnitude)) 
+```
+
+Zoom in op Groningen
+
+```{r}
+leaflet() %>%
+  addTiles(urlTemplate = brtAchtergrondkaart,
+           attribution = "Kaartgegevens &copy; Kadaster",
+           options = tileOptions(minZoom = 6, maxZoom = 18)) %>%
+  addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
+             weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+             popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                            "Locatie:", locatie, "<br>",
+                            "Magnitude:" , magnitude)) %>%
+  setView(6.8, 53.3, zoom = 10) 
+```
+
+Voeg het Groningen veld als laag toe aan de kaart. De volgorde van de lagen is belangrijk: de laag met de bevingen moet bovenop de laag met het gasveld liggen, anders werkt de popup niet. Maak gebruik van de functie `addMapePane()` en de parameter `zIndex` om controle te houden over de volgorde van lagen. 
+
+```{r}
+veld <- read_json("./data/groningenveld.json")
+
+leaflet() %>%
+  addTiles(urlTemplate = brtAchtergrondkaart,
+           attribution = "Kaartgegevens &copy; Kadaster",
+           options = tileOptions(minZoom = 6, maxZoom = 18)) %>%
+  addMapPane("groningen veld",  zIndex = 410) %>%
+  addMapPane("bevingen",  zIndex = 420) %>%
+  addTopoJSON(topojson = veld, weight = 1, color = "#555555", opacity = 1, fillOpacity = 0.3,
+              options = pathOptions(pane = "groningen veld")) %>%
+  addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
+             weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+             popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                            "Locatie:", locatie, "<br>",
+                            "Magnitude:" , magnitude),
+             options = pathOptions(pane = "bevingen")) %>%
+  setView(6.8, 53.3, zoom = 10) 
+```
+
+Maak van de kaart een Shiny app.
+
+```{r}
+# Data 
+bevingen <- read_csv("./data/bevingen.csv")
+veld <- read_json("./data/groningenveld.json")
+brtAchtergrondkaart <- "http://geodata.nationaalgeoregister.nl/tiles/service/wmts/brtachtergrondkaart/EPSG:3857/{z}/{x}/{y}.png"
+
+# Kleurenpalet
+ pal <- colorNumeric(palette = "YlOrRd", domain = c(-1:4))
+
+ # Gebruikersinterface
+header <- dashboardHeader(title = "Kaart")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(
+  box(width = 6, leafletOutput(outputId = "kaart", height = 600))
+)
+
+ui <- dashboardPage(header, sidebar, body)
+
+# Server
+server <- function(input, output) {
+  output$kaart <- renderLeaflet({
+    leaflet() %>%
+      addTiles(urlTemplate = brtAchtergrondkaart,
+               attribution = "Kaartgegevens &copy; Kadaster",
+               options = tileOptions(minZoom = 6, maxZoom = 18)) %>%
+      addMapPane("groningen veld",  zIndex = 410) %>%
+      addMapPane("bevingen",  zIndex = 420) %>%
+      addTopoJSON(topojson = veld, weight = 1, color = "#555555", opacity = 1, fillOpacity = 0.3,
+                  options = pathOptions(pane = "groningen veld")) %>%
+      addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
+                 weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+                 popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                                "Locatie:", locatie, "<br>",
+                                "Magnitude:" , magnitude),
+                 options = pathOptions(pane = "bevingen")) %>%
+      setView(6.8, 53.3, zoom = 10) 
+  })
+}
+
+# Run de app
+shinyApp(ui, server)
+```
+
+Pas de Shiny app aan, zodat je kunt filteren op bevingen met een magnitude boven of gelijk aan een bepaalde drempelwaarde.
+
+Voeg eerst een invoervak toe aan de gebruikersinterface voor het invoeren van de drempelwaarde. Zorg er voor dat er geen waarden kleiner dan -1 of groter dan 4 ingevoerd kunnen worden. Maak -1 de standaardwaarde.
+
+```{r}
+header <- dashboardHeader(title = "Kaart")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(
+  box(width = 6, leafletOutput(outputId = "kaart", height = 600)),
+  box(width = 2, numericInput(inputId = "drempelwaarde", label = "Drempelwaarde", 
+                              min = -1, max = 4, step = 0.1, value = -1))
+)
+
+ui <- dashboardPage(header, sidebar, body)
+```
+
+Pas nu de serverlogica aan, zodat de punten op de kaart gefilterd worden op basis van de drempelwaarde.
+
+```{r}
+server <- function(input, output) {
+  # Filter data op basis van drempelwaarde
+  gefilterdeBevingen <- reactive({
+                          bevingen %>% 
+                            filter(magnitude >= input$drempelwaarde)
+                        })
+  
+  # Render kaart
+  output$kaart <- renderLeaflet({
+    leaflet() %>%
+      addTiles(urlTemplate = brtAchtergrondkaart,
+               attribution = "Kaartgegevens &copy; Kadaster",
+               options = tileOptions(minZoom = 6, maxZoom = 18)) %>%
+      addMapPane("groningen veld",  zIndex = 410) %>%
+      addMapPane("bevingen",  zIndex = 420) %>%
+      addTopoJSON(topojson = veld, weight = 1, color = "#555555", opacity = 1, fillOpacity = 0.3,
+                  options = pathOptions(pane = "groningen veld")) %>%
+      # Let op: de databron voor addCircles is nu gefilterdeBevingen()
+      addCircles(data = gefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
+                 weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+                 popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                                "Locatie:", locatie, "<br>",
+                                "Magnitude:" , magnitude),
+                 options = pathOptions(pane = "bevingen")) %>%
+      setView(6.8, 53.3, zoom = 10) 
+  })
+}
+```
+
+Start de Shiny app.
+
+```{r}
+shinyApp(ui, server)
+```
+
+De app werkt, maar het probleem is dat iedere keer wanneer je een andere drempelwaarde opgeeft, de hele Leaflet kaart opnieuw wordt gerenderd. Dat is niet erg efficiënt! Dit kun je voorkomen door een _reactive observer_ toe te voegen.
+
+```{r}
+# Data 
+bevingen <- read_csv("./data/bevingen.csv")
+veld <- read_json("./data/groningenveld.json")
+brtAchtergrondkaart <- "http://geodata.nationaalgeoregister.nl/tiles/service/wmts/brtachtergrondkaart/EPSG:3857/{z}/{x}/{y}.png"
+
+# Kleurenpalet
+ pal <- colorNumeric(palette = "YlOrRd", domain = c(-1:4))
+
+ # Gebruikersinterface
+header <- dashboardHeader(title = "Kaart")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(
+  box(width = 6, leafletOutput(outputId = "kaart", height = 600)),
+  box(width = 2, numericInput(inputId = "drempelwaarde", label = "Drempelwaarde", 
+                              min = -1, max = 4, step = 0.1, value = -1))
+)
+
+ui <- dashboardPage(header, sidebar, body)
+
+# Server
+server <- function(input, output) {
+  # Filter data op basis van drempelwaarde
+  gefilterdeBevingen <- reactive({
+                          bevingen %>% 
+                            filter(magnitude >= input$drempelwaarde)
+                        })
+  
+  # Render kaart
+  output$kaart <- renderLeaflet({
+    leaflet() %>%
+      addTiles(urlTemplate = brtAchtergrondkaart,
+               attribution = "Kaartgegevens &copy; Kadaster",
+               options = tileOptions(minZoom = 6, maxZoom = 18)) %>%
+      addMapPane("groningen veld",  zIndex = 410) %>%
+      addMapPane("bevingen",  zIndex = 420) %>%
+      addTopoJSON(topojson = veld, weight = 1, color = "#555555", opacity = 1, fillOpacity = 0.3,
+                  options = pathOptions(pane = "groningen veld")) %>%
+      addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
+                 weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+                 popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                                "Locatie:", locatie, "<br>",
+                                "Magnitude:" , magnitude),
+                 options = pathOptions(pane = "bevingen")) %>%
+      setView(6.8, 53.3, zoom = 10) 
+  })
+  
+  # Toon alleen gefilterde punten op de kaart
+  observe({
+    leafletProxy(mapId = "kaart") %>%
+      clearShapes() %>%
+      addCircles(data = gefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),                  weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+                 popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                                "Locatie:", locatie, "<br>",
+                                "Magnitude:" , magnitude),
+                 options = pathOptions(pane = "bevingen")) 
+  })  
+}
+
+# Run de app
+shinyApp(ui, server)
+```
+
+Verberg bij het opstarten de kaartlaag met het gasveld. Maak deze laag pas zichtbaar, nadat er een vinkje in een checkbox is gezet.
+
+```{r}
+# Data 
+bevingen <- read_csv("./data/bevingen.csv") 
+veld <- read_json("./data/groningenveld.json")
+brtAchtergrondkaart <- "http://geodata.nationaalgeoregister.nl/tiles/service/wmts/brtachtergrondkaart/EPSG:3857/{z}/{x}/{y}.png"
+
+# Kleurenpalet
+ pal <- colorNumeric(palette = "YlOrRd", domain = c(-1:4))
+
+ # Gebruikersinterface
+header <- dashboardHeader(title = "Kaart")
+
+sidebar <- dashboardSidebar(disable = TRUE)
+
+body <- dashboardBody(
+  box(width = 6, leafletOutput(outputId = "kaart", height = 600)),
+  box(width = 2, numericInput(inputId = "drempelwaarde", label = "Drempelwaarde", 
+                              min = -1, max = 4, step = 0.1, value = -1),
+                 checkboxInput(inputId = "groningenVeld", label = "Groningen veld tonen", value = FALSE))
+)
+
+ui <- dashboardPage(header, sidebar, body)
+
+# Server
+server <- function(input, output) {
+  # Filter data op basis van drempelwaarde
+  gefilterdeBevingen <- reactive({
+                          bevingen %>% 
+                            filter(magnitude >= input$drempelwaarde)
+                        })
+  
+  # Render kaart
+  output$kaart <- renderLeaflet({
+    leaflet() %>%
+      addTiles(urlTemplate = brtAchtergrondkaart,
+               attribution = "Kaartgegevens &copy; Kadaster",
+               options = tileOptions(minZoom = 6, maxZoom = 18)) %>%
+      addMapPane("groningen veld",  zIndex = 410) %>%
+      addMapPane("bevingen",  zIndex = 420) %>%
+      addTopoJSON(topojson = veld, weight = 1, color = "#555555", opacity = 1, fillOpacity = 0.3,
+                  options = pathOptions(pane = "groningen veld"), group = "groningen veld") %>%
+      addCircles(data = bevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
+                 weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+                 popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                                "Locatie:", locatie, "<br>",
+                                "Magnitude:" , magnitude),
+                 options = pathOptions(pane = "bevingen")) %>%
+      setView(6.8, 53.3, zoom = 10) %>%
+      hideGroup("groningen veld")
+  })
+  
+  # Toon alleen gefilterde punten op de kaart
+  observe({
+    leafletProxy(mapId = "kaart") %>%
+      clearShapes() %>%
+      addCircles(data = gefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),
+                 weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+                 popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
+                                "Locatie:", locatie, "<br>",
+                                "Magnitude:" , magnitude),
+                 options = pathOptions(pane = "bevingen")) 
+  })  
+  
+  # Zet de kaartlaag met het gasveld aan of uit afhankelijk van de waarde van de checkbox
+  observe({
+    if (input$groningenVeld) {
+      leafletProxy(mapId = "kaart") %>% showGroup("groningen veld")
+    } else {
+      leafletProxy(mapId = "kaart") %>% hideGroup("groningen veld")
+    }  
+  })
+}
+
+# Start de app
+shinyApp(ui, server)
+```
+
+Ga naar de map *shiny_apps\3_kaart_maken* en open het bestand *app.R*. Het bestand bevat alle code voor het maken van een interactieve kaart in Shiny.
+
+Ga verder met de oefeningen in het bestand *4_tijdreeks_visualiseren.Rmd*.
