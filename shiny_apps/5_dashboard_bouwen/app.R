@@ -38,8 +38,8 @@ body <- dashboardBody(
       ),
       box(
         width = 2, 
-        numericInput(inputId = "drempelwaarde", label = "Drempelwaarde", min = -1, max = 4, step = 0.1, value = -1),
-        checkboxInput(inputId = "groningenVeld", label = "Gasvelden tonen", value = FALSE)
+        numericInput(inputId = "drempelwaarde", label = HTML("Magnitude &ge;"), min = -1, max = 4, step = 0.1, value = -1),
+        checkboxInput(inputId = "groningenVeld", label = "Groningen veld tonen", value = FALSE)
       )
     ),
     tabItem(
