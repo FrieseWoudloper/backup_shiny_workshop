@@ -1,0 +1,56 @@
+---
+title: "Dashboard bouwen"
+output:
+  html_document:
+    df_print: paged
+---
+
+Laad de libraries die we in dit deel van de workshop nodig hebben.
+
+```{r message = FALSE}
+library(tidyverse)
+library(shiny)
+library(shinydashboard)
+library(DT)
+library(plotly)
+library(leaflet)
+library(RColorBrewer)
+library(jsonlite)
+```
+
+We gaan nu de code die we tot nu toe hebben geschreven, samenvoegen tot één dashboard. 
+Pas eerst de gebruikersinterface aan. Voeg tabs toe aan de sidebar voor de verschillende onderdelen van het dashboard.
+
+```{r echo = TRUE, results = hide}
+header <- dashboardHeader(title = "Bevingen dashboard")
+
+sidebar <- dashboardSidebar(
+  sidebarMenu(
+    menuItem("Kaart",     tabName = "kaartTab",     icon = icon("map-marker", lib = "glyphicon")),
+    menuItem("Histogram", tabName = "histogramTab", icon = icon("stats",      lib = "glyphicon")),
+    menuItem("Grafiek",   tabName = "grafiekTab",   icon = icon("line-chart")),
+    menuItem("Tabel",     tabName = "tabelTab",     icon = icon("list-alt",   lib = "glyphicon")),
+    menuItem("Info",      tabName = "infoTab",      icon = icon("info-sign",  lib = "glyphicon"))
+  )
+)
+
+body <- dashboardBody(
+  tabItems(
+    tabItem("kaartTab",     "Hier komt de kaart"),
+    tabItem("histogramTab", "Hier komt het histogram"),
+    tabItem("grafiekTab",   "Hier komt de grafiek met de tijdreeks"),
+    tabItem("tabelTab",     "Hier komt de tabel"),
+    tabItem("infoTab",      "Hier komt informatie over de app")
+  )
+)
+
+ui <- dashboardPage(header, sidebar, body)
+
+server <- function(input, output) {}
+
+shinyApp(ui, server)
+```
+
+Kopieer nu de code uit de vorige onderdelen van de workshop naar de juiste plek.
+
+In de map *shiny_apps\5_dashboard_bouwen* vind je het bestand *app.R* met het eindresultaat.

@@ -1,6 +1,8 @@
 ---
 title: "Tijdreeks visualiseren"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 Laad de libraries die we in dit deel van de workshop nodig hebben.
@@ -60,7 +62,7 @@ plot_ly(data = jaargegevens, x = ~jaar, y = ~gaswinning, type = 'scatter', mode 
 
 Presenteer beide grafieken in een Shiny app.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 # Data
 jaargegevens <- read_csv("./data/gegevens geaggregeerd per jaar.csv") %>%
                   mutate(hovertekst_aantal  = paste("Jaar:", jaar, "<br>", "Aantal:", aantal),
@@ -150,10 +152,10 @@ server <- function(input, output) {
 
 Start de Shiny app.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 shinyApp(ui, server)
 ```
 
-Ga naar de map *shiny_apps\3_tijdreeks_visualiseren* en open het bestand *app.R*. Het bestand bevat alle code voor het visuliseren van de tijdreeksen van bevingen en gaswinning in Shiny.
+Ga naar de map *shiny_apps\3_tijdreeks_visualiseren* en open het bestand *app.R*. Het bestand bevat alle code voor het visualiseren van de tijdreeksen van bevingen en gaswinning in Shiny.
 
 Ga verder met de oefeningen in het bestand *5_dashboard_bouwen.Rmd*.

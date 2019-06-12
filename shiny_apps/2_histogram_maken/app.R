@@ -28,14 +28,14 @@ ui <- dashboardPage(header, sidebar, body)
 # Server 
 server <- function(input, output) {
   # Filter data op basis van slider input
-  gefilterdeBevingen <- reactive({
-                          bevingen %>% 
-                            filter(jaar >= input$jaar[1] & jaar <= input$jaar[2])              
-                        })
+  opJaarGefilterdeBevingen <- reactive({
+                                bevingen %>% 
+                                filter(jaar >= input$jaar[1] & jaar <= input$jaar[2])              
+                              })
   
   # Render histogram
   output$histogram <- renderPlotly({
-    plot_ly(data = gefilterdeBevingen(), x = ~factor(magnitude)) %>%     
+    plot_ly(data = opJaarGefilterdeBevingen(), x = ~factor(magnitude)) %>%     
       add_histogram() %>%
       layout(xaxis = list(title = "Magnitude (Richter)", dtick = 10), 
              yaxis = list(title = "Frequentie"), 

@@ -1,9 +1,9 @@
 ---
 title: "Data inlezen en bekijken"
 output:
-  html_notebook: default
   html_document:
     df_print: paged
+  html_notebook: default
 ---
 
 Laad de libraries die we in dit deel van de workshop nodig hebben.
@@ -84,7 +84,7 @@ De app ziet er al goed uit, alleen jammer dat de gebruikersinterface Engelstalig
 
 De sidebar heeft op dit moment geen functie. Verberg dit onderdeel van de gebruikersinterface.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 header <- dashboardHeader(title = "Mijn eerste Shiny app!")
 
 sidebar <- dashboardSidebar(disable = TRUE)
@@ -103,7 +103,7 @@ shinyApp(ui, server)
 
 Voeg tenslotte nog een knop en serverlogica toe voor het downloaden van de gegevens.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 header <- dashboardHeader(title = "Mijn eerste Shiny app!")
 
 sidebar <- dashboardSidebar(disable = TRUE)

@@ -1,6 +1,8 @@
 ---
 title: "Histogram maken"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 Laad de libraries die we in dit deel van de workshop nodig hebben.
@@ -76,13 +78,13 @@ server <- function(input, output) {
 
 Run de Shiny app.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 shinyApp(ui, server)
 ```
 
 Het histogram ziet er uitgerekt en lelijk uit. Voeg een box toe aan de gebruikersinterface, plaats het histogram daarbinnen en pas de breedte aan.
 
-Shiny werkt met het [Bootstrap](https://nl.wikipedia.org/wiki/Bootstrap_(framework)) framework om er voor te zorgen dat de web apps reponsive zijn. Dat wil zeggen: dat ze er goed uitzien op alle devices en mooi meeschalen als het scherm groter of kleiner wordt.    
+Shiny werkt met het [Bootstrap](https://nl.wikipedia.org/wiki/Bootstrap_(framework)) framework om er voor te zorgen dat de web apps reponsive zijn. Dat wil zeggen dat ze er goed uitzien op alle devices en mooi meeschalen als het scherm groter of kleiner wordt.    
 
 Bootstrap gebruikt een grid waarbij het scherm is opgedeeld in 12 kolommen. De relatieve breedte van een box druk je daarom uit op een schaal van 1 tot 12. `width = 6` betekent dat de breedte van de box met het histogram de helft van de breedte van het scherm heeft.
 
@@ -90,7 +92,7 @@ Voer onderstaande code meerdere malen uit, iedere keer met een andere waarde voo
 
 Maak het scherm van de web app kleiner en groter en merk op dat de app de zich automatisch aanpast aan de schermgrootte.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 header <- dashboardHeader(title = "Histogram")
 
 sidebar <- dashboardSidebar(disable = TRUE)
@@ -138,15 +140,15 @@ Pas de code aan de serverkant aan, zodat de gegevens gefilterd worden op de gese
 ```{r}
 server <- function(input, output) {
   # Filter data op basis van slider input
-  gefilterdeBevingen <- reactive({
-                          bevingen %>% 
-                            filter(jaar >= input$jaar[1] & jaar <= input$jaar[2])              
-                        })
+  opJaarGefilterdeBevingen <- reactive({
+                                bevingen %>% 
+                                filter(jaar >= input$jaar[1] & jaar <= input$jaar[2])              
+                              })
   
   # Render histogram
   output$histogram <- renderPlotly({
     # Databron is nu de reactive source!
-    plot_ly(data = gefilterdeBevingen(), x = ~factor(magnitude)) %>%     
+    plot_ly(data = opJaarGefilterdeBevingen(), x = ~factor(magnitude)) %>%     
       add_histogram() %>%
       layout(xaxis = list(title = "Magnitude (Richter)", dtick = 10), 
              yaxis = list(title = "Frequentie"), 
@@ -158,7 +160,7 @@ server <- function(input, output) {
 
 Start de Shiny app.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 shinyApp(ui, server)
 ```
 

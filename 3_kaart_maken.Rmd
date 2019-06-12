@@ -1,6 +1,8 @@
 ---
 title: "Kaart maken"
-output: html_notebook
+output:
+  html_document:
+    df_print: paged
 ---
 
 Laad de libraries die we in dit deel van de workshop nodig hebben.
@@ -121,7 +123,7 @@ leaflet() %>%
 
 Maak van de kaart een Shiny app.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 # Data 
 bevingen <- read_csv("./data/bevingen.csv")
 veld <- read_json("./data/groningenveld.json")
@@ -189,10 +191,10 @@ Pas nu de serverlogica aan, zodat de punten op de kaart gefilterd worden op basi
 ```{r}
 server <- function(input, output) {
   # Filter data op basis van drempelwaarde
-  gefilterdeBevingen <- reactive({
-                          bevingen %>% 
-                            filter(magnitude >= input$drempelwaarde)
-                        })
+  opMagnitudeGefilterdeBevingen <- reactive({
+                                     bevingen %>% 
+                                       filter(magnitude >= input$drempelwaarde)
+                                   })
   
   # Render kaart
   output$kaart <- renderLeaflet({
@@ -205,7 +207,7 @@ server <- function(input, output) {
       addTopoJSON(topojson = veld, weight = 1, color = "#555555", opacity = 1, fillOpacity = 0.3,
                   options = pathOptions(pane = "groningen veld")) %>%
       # Let op: de databron voor addCircles is nu gefilterdeBevingen()
-      addCircles(data = gefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
+      addCircles(data = opMagnitudeGefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude), 
                  weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
                  popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
                                 "Locatie:", locatie, "<br>",
@@ -218,13 +220,13 @@ server <- function(input, output) {
 
 Start de Shiny app.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 shinyApp(ui, server)
 ```
 
 De app werkt, maar het probleem is dat iedere keer wanneer je een andere drempelwaarde opgeeft, de hele Leaflet kaart opnieuw wordt gerenderd. Dat is niet erg efficiënt! Dit kun je voorkomen door een _reactive observer_ toe te voegen.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 # Data 
 bevingen <- read_csv("./data/bevingen.csv")
 veld <- read_json("./data/groningenveld.json")
@@ -249,10 +251,10 @@ ui <- dashboardPage(header, sidebar, body)
 # Server
 server <- function(input, output) {
   # Filter data op basis van drempelwaarde
-  gefilterdeBevingen <- reactive({
-                          bevingen %>% 
-                            filter(magnitude >= input$drempelwaarde)
-                        })
+  opMagnitudeGefilterdeBevingen <- reactive({
+                                     bevingen %>% 
+                                       filter(magnitude >= input$drempelwaarde)
+                                   })
   
   # Render kaart
   output$kaart <- renderLeaflet({
@@ -271,7 +273,7 @@ server <- function(input, output) {
   observe({
     leafletProxy(mapId = "kaart") %>%
       clearShapes() %>%
-      addCircles(data = gefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),
+      addCircles(data = opMagnitudeGefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),
                  weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
                  popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
                                 "Locatie:", locatie, "<br>",
@@ -286,7 +288,7 @@ shinyApp(ui, server)
 
 Verberg bij het opstarten de kaartlaag met het gasveld. Maak deze laag pas zichtbaar, nadat er een vinkje in een checkbox is gezet.
 
-```{r}
+```{r echo = TRUE, results = 'hide'}
 # Data 
 bevingen <- read_csv("./data/bevingen.csv") 
 veld <- read_json("./data/groningenveld.json")
@@ -312,10 +314,10 @@ ui <- dashboardPage(header, sidebar, body)
 # Server
 server <- function(input, output) {
   # Filter data op basis van drempelwaarde
-  gefilterdeBevingen <- reactive({
-                          bevingen %>% 
-                            filter(magnitude >= input$drempelwaarde)
-                        })
+  opMagnitudeGefilterdeBevingen <- reactive({
+                                     bevingen %>% 
+                                       filter(magnitude >= input$drempelwaarde)
+                                   })
   
   # Render kaart
   output$kaart <- renderLeaflet({
@@ -335,7 +337,7 @@ server <- function(input, output) {
   observe({
     leafletProxy(mapId = "kaart") %>%
       clearShapes() %>%
-      addCircles(data = gefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),
+      addCircles(data = opMagnitudeGefilterdeBevingen, lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),
                  weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
                  popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
                                 "Locatie:", locatie, "<br>",

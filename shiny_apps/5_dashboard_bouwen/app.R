@@ -38,8 +38,11 @@ body <- dashboardBody(
       ),
       box(
         width = 2, 
-        numericInput(inputId = "drempelwaarde", label = HTML("Magnitude &ge;"), min = -1, max = 4, step = 0.1, value = -1),
-        checkboxInput(inputId = "groningenVeld", label = "Groningen veld tonen", value = FALSE)
+        numericInput(inputId = "drempelwaarde", label = HTML("Magnitude &ge;"), min = -1, max = 4, step = 0.1, value = -0.8),
+        hr(),
+        checkboxInput(inputId = "groningenVeld", label = HTML("<strong>Groningen veld tonen</strong>"), value = FALSE),
+        hr(),
+        sliderInput(inputId = "doorzichtigheid", label = "Doorzichtigheid", min = 0, max = 100, step = 5, value = 30, ticks = FALSE, post = "%")
       )
     ),
     tabItem(
@@ -104,8 +107,8 @@ server <- function(input, output) {
   observe({
     leafletProxy(mapId = "kaart") %>%
       clearShapes() %>%
-      addCircles(data = opMagnitudeGefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),
-                 weight = 1, radius = ~10^magnitude/10, fillOpacity = 0.7,
+      addCircles(data = opMagnitudeGefilterdeBevingen(), lng = ~longitude, lat = ~latitude, color = ~pal(magnitude),  
+                 weight = 1, radius = ~10 ^ (magnitude + 0.81) / 10, fillOpacity = 1 - (input$doorzichtigheid / 100),
                  popup = ~paste("Datum: ", format(datum, "%d-%m-%Y"), "<br>",
                                 "Locatie:", locatie, "<br>",
                                 "Magnitude:" , magnitude),
