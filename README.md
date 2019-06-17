@@ -1,4 +1,1 @@
-# shiny_workshop
-
-Maak een account aan op [RStudio Cloud](http://rstudio.cloud).
-Open vervolgens het project [bevingen dashboard](https://rstudio.cloud/spaces/19076/join?access_code=%2B2sXHL9XfPf8YnFyjdZiG2VDhjLjjt8Y%2Bx5tv2Q9).
+In de [handleiding](https://github.com/FrieseWoudloper/shiny_workshop/blob/master/Handleiding.pdf) staat beschreven welke software je nodig hebt voor de workshop en welke oefeningen we gaan doen.
